@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { poppins } from "@/fonts";
 import { Providers } from "@/components/providers";
+import { Navbar } from "@/components/navbar";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,7 +18,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${poppins.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">
-        <Providers>{children}</Providers>
+        <Providers>
+          <Navbar />
+          {children}
+        </Providers>
       </body>
     </html>
   );

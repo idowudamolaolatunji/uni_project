@@ -12,6 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { RequireAuth } from "@/components/require-auth";
 
 interface Resource {
   _id: string;
@@ -39,7 +40,7 @@ async function fetchResources(params: {
   return response.json() as Promise<{ resources: Resource[] }>;
 }
 
-export default function SearchPage() {
+function Search() {
   const [q, setQ] = useState("");
   const [tag, setTag] = useState("");
   const [courseCode, setCourseCode] = useState("");
@@ -116,5 +117,13 @@ export default function SearchPage() {
         ))}
       </div>
     </main>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <RequireAuth>
+      <Search />
+    </RequireAuth>
   );
 }
