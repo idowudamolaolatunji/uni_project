@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectToDatabase } from "@/lib/mongodb";
 import { ResourceModel } from "@/lib/models/Resource";
-import { deleteResourceFile } from "@/lib/cloudinary";
+import { deleteResourceFile, uploadResourceFile } from "@/lib/cloudinary";
 import { tokenize } from "@/lib/algorithms/tokenize";
 import {
   computeInverseDocumentFrequencies,
@@ -35,12 +35,32 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   }
 
   const { id } = await params;
-  const body = await request.json();
-  const { title, abstract, tags } = body as {
-    title?: string;
-    abstract?: string;
-    tags?: string[];
-  };
+  const formData = await request.formData();
+  const title = formData.get("title");
+  const abstract = formData.get("abstract");
+  const tags = formData.getAll("tags").map((tag) => String(tag));
+  const file = formData.get("file");
+
+  if (typeof title !== "string" || typeof abstract !== "string") {
+    return NextResponse.json(
+      { error: "title and abstract are required." },
+      { status: 400 }
+    );
+  }
+
+  const wordCount = abstract.trim().split(/\s+/).filter(Boolean).length;
+  if (wordCount < 40) {
+    return NextResponse.json(
+      { error: "Abstract must be at least 40 words." },
+      { status: 400 }
+    );
+  }
+  if (tags.length < 3) {
+    return NextResponse.json(
+      { error: "At least 3 tags are required." },
+      { status: 400 }
+    );
+  }
 
   await connectToDatabase();
 
@@ -49,23 +69,34 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Resource not found." }, { status: 404 });
   }
 
-  if (title !== undefined) resource.title = title;
-  if (abstract !== undefined) resource.abstract = abstract;
-  if (tags !== undefined) resource.tags = tags;
+  resource.title = title;
+  resource.abstract = abstract;
+  resource.tags = tags;
 
-  if (title !== undefined || abstract !== undefined) {
-    const updatedTokens = tokenize(`${resource.title} ${resource.abstract}`);
-    const otherResources = await ResourceModel.find(
-      { _id: { $ne: id } },
-      "title abstract"
-    ).lean();
-    const documents = [
-      ...otherResources.map((other) => tokenize(`${other.title} ${other.abstract}`)),
-      updatedTokens,
-    ];
-    const idf = computeInverseDocumentFrequencies(documents);
-    resource.tfidfVector = computeTfidfVector(updatedTokens, idf);
+  if (file instanceof File && file.size > 0) {
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const dataUri = `data:${file.type};base64,${buffer.toString("base64")}`;
+    const previousCloudinaryId = resource.cloudinaryId;
+
+    const uploadResult = await uploadResourceFile(dataUri);
+    resource.fileUrl = uploadResult.secure_url;
+    resource.cloudinaryId = uploadResult.public_id;
+
+    await deleteResourceFile(previousCloudinaryId);
   }
+
+  const updatedTokens = tokenize(`${resource.title} ${resource.abstract}`);
+  const otherResources = await ResourceModel.find(
+    { _id: { $ne: id } },
+    "title abstract"
+  ).lean();
+  const documents = [
+    ...otherResources.map((other) => tokenize(`${other.title} ${other.abstract}`)),
+    updatedTokens,
+  ];
+  const idf = computeInverseDocumentFrequencies(documents);
+  resource.tfidfVector = computeTfidfVector(updatedTokens, idf);
 
   await resource.save();
 

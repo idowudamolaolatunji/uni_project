@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
+import { FiUploadCloud, FiAlertCircle } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,6 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { TagPicker } from "@/components/tag-picker";
+import { FilePicker } from "@/components/file-picker";
 import { AdminShell } from "@/components/admin-shell";
 
 const MIN_TAGS = 3;
@@ -89,15 +91,22 @@ export default function AdminUploadPage() {
   return (
     <AdminShell>
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col p-8">
-        <Card>
+        <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle>Upload a resource</CardTitle>
-            <CardDescription>
-              Add a new academic resource to the catalog.
-            </CardDescription>
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <FiUploadCloud className="size-4.5" />
+              </div>
+              <div>
+                <CardTitle>Upload a resource</CardTitle>
+                <CardDescription>
+                  Add a new academic resource to the catalog.
+                </CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
                 <Label htmlFor="title">Title</Label>
                 <Input
@@ -128,17 +137,14 @@ export default function AdminUploadPage() {
                 label={`Tags (select at least ${MIN_TAGS})`}
               />
 
-              <div className="space-y-2">
-                <Label htmlFor="file">File</Label>
-                <Input
-                  id="file"
-                  type="file"
-                  onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-                  required
-                />
-              </div>
+              <FilePicker file={file} onChange={setFile} label="File" />
 
-              {error && <p className="text-sm text-destructive">{error}</p>}
+              {error && (
+                <p className="flex items-center gap-1.5 text-sm text-destructive">
+                  <FiAlertCircle className="size-4 shrink-0" />
+                  {error}
+                </p>
+              )}
 
               <Button type="submit" disabled={mutation.isPending} className="w-full">
                 {mutation.isPending ? "Uploading..." : "Upload resource"}

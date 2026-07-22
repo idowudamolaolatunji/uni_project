@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
+import { FiCompass, FiAlertCircle, FiInbox, FiExternalLink } from "react-icons/fi";
 import {
   Card,
   CardContent,
@@ -94,14 +95,19 @@ export default function DashboardPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-8">
-      <div>
-        <h1 className="text-2xl font-semibold">
-          Welcome back{session?.user.email ? `, ${session.user.email}` : ""}
-        </h1>
-        <p className="text-muted-foreground">
-          Ranked using a hybrid of tag overlap (Jaccard) and content
-          similarity (Cosine).
-        </p>
+      <div className="flex items-center gap-2.5">
+        <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <FiCompass className="size-4.5" />
+        </div>
+        <div>
+          <h1 className="text-2xl font-semibold">
+            Welcome back{session?.user.email ? `, ${session.user.email}` : ""}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Ranked using a hybrid of tag overlap (Jaccard) and content
+            similarity (Cosine).
+          </p>
+        </div>
       </div>
 
       {needsOnboarding && (
@@ -118,7 +124,7 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      <div className="space-y-2 rounded-lg border p-4">
+      <div className="space-y-2 rounded-lg border bg-card p-4 shadow-sm">
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span>Tag overlap</span>
           <span>Content similarity</span>
@@ -143,22 +149,26 @@ export default function DashboardPage() {
         </div>
       )}
       {isError && (
-        <p className="text-sm text-destructive">
+        <p className="flex items-center gap-1.5 text-sm text-destructive">
+          <FiAlertCircle className="size-4 shrink-0" />
           Couldn&apos;t load recommendations. Try again later.
         </p>
       )}
       {data && data.recommendations.length === 0 && (
         <Card>
-          <CardContent className="pt-6 text-center text-muted-foreground">
-            No resources are available yet. Check back once an admin has
-            uploaded some.
+          <CardContent className="flex flex-col items-center gap-2 py-12 text-center text-muted-foreground">
+            <FiInbox className="size-8" />
+            <p>
+              No resources are available yet. Check back once an admin has
+              uploaded some.
+            </p>
           </CardContent>
         </Card>
       )}
 
       <div className="flex flex-col gap-4">
         {data?.recommendations.map(({ resource, jaccard, cosine, finalScore }) => (
-          <Card key={resource.id}>
+          <Card key={resource.id} className="transition-shadow hover:shadow-md">
             <CardHeader>
               <CardTitle>{resource.title}</CardTitle>
             </CardHeader>
@@ -173,18 +183,23 @@ export default function DashboardPage() {
                   </Badge>
                 ))}
               </div>
-              <div className="flex gap-4 text-xs text-muted-foreground">
-                <span>Jaccard: {jaccard.toFixed(2)}</span>
-                <span>Cosine: {cosine.toFixed(2)}</span>
-                <span>Score: {finalScore.toFixed(2)}</span>
+              <div className="flex flex-wrap gap-2 text-xs">
+                <Badge variant="outline" className="font-normal text-muted-foreground">
+                  Jaccard {jaccard.toFixed(2)}
+                </Badge>
+                <Badge variant="outline" className="font-normal text-muted-foreground">
+                  Cosine {cosine.toFixed(2)}
+                </Badge>
+                <Badge className="font-medium">Score {finalScore.toFixed(2)}</Badge>
               </div>
               <a
                 href={resource.fileUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm font-medium text-primary underline"
+                className="inline-flex items-center gap-1 text-sm font-medium text-primary underline underline-offset-2"
               >
                 View resource
+                <FiExternalLink className="size-3.5" />
               </a>
             </CardContent>
           </Card>
@@ -193,4 +208,3 @@ export default function DashboardPage() {
     </main>
   );
 }
-

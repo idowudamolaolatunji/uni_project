@@ -3,6 +3,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "@tanstack/react-query";
+import { FiUser, FiAlertCircle } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -92,12 +93,19 @@ export default function OnboardingPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col p-8">
-      <Card>
+      <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle>Your profile</CardTitle>
-          <CardDescription>
-            Update your interests and tags to improve your recommendations.
-          </CardDescription>
+          <div className="flex items-center gap-2.5">
+            <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <FiUser className="size-4.5" />
+            </div>
+            <div>
+              <CardTitle>Your profile</CardTitle>
+              <CardDescription>
+                Update your interests and tags to improve your recommendations.
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -107,7 +115,12 @@ export default function OnboardingPage() {
               label={`Topics you're interested in (select at least ${MIN_TAGS})`}
             />
 
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            {error && (
+              <p className="flex items-center gap-1.5 text-sm text-destructive">
+                <FiAlertCircle className="size-4 shrink-0" />
+                {error}
+              </p>
+            )}
 
             <Button type="submit" disabled={mutation.isPending} className="w-full">
               {mutation.isPending ? "Saving..." : "Save changes"}

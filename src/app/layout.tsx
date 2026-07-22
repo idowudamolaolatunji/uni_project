@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import NextTopLoader from "nextjs-toploader";
 import { poppins } from "@/fonts";
 import { Providers } from "@/components/providers";
 import "./globals.css";
@@ -17,6 +18,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${poppins.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">
+        <NextTopLoader color="var(--primary)" showSpinner={false} />
         <Providers>{children}</Providers>
       </body>
     </html>

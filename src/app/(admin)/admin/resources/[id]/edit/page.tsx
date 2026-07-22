@@ -3,6 +3,7 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { FiEdit2, FiAlertCircle, FiTrash2 } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +15,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { TagPicker } from "@/components/tag-picker";
+import { FilePicker } from "@/components/file-picker";
 import { AdminShell } from "@/components/admin-shell";
 
 const MIN_TAGS = 3;
@@ -25,6 +37,7 @@ interface Resource {
   title: string;
   abstract: string;
   tags: string[];
+  fileUrl: string;
 }
 
 async function fetchResource(id: string) {
@@ -35,14 +48,10 @@ async function fetchResource(id: string) {
   return response.json() as Promise<{ resource: Resource }>;
 }
 
-async function updateResource(
-  id: string,
-  payload: { title: string; abstract: string; tags: string[] }
-) {
+async function updateResource(id: string, formData: FormData) {
   const response = await fetch(`/api/resources/${id}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
+    body: formData,
   });
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
@@ -70,8 +79,10 @@ function EditResourceForm({ id }: { id: string }) {
   const [title, setTitle] = useState("");
   const [abstractText, setAbstractText] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
   useEffect(() => {
     if (data && !initialized) {
@@ -83,8 +94,7 @@ function EditResourceForm({ id }: { id: string }) {
   }, [data, initialized]);
 
   const updateMutation = useMutation({
-    mutationFn: (payload: { title: string; abstract: string; tags: string[] }) =>
-      updateResource(id, payload),
+    mutationFn: (formData: FormData) => updateResource(id, formData),
     onSuccess: () => {
       router.push("/admin");
     },
@@ -100,6 +110,7 @@ function EditResourceForm({ id }: { id: string }) {
     },
     onError: (mutationError: Error) => {
       setError(mutationError.message);
+      setConfirmDeleteOpen(false);
     },
   });
 
@@ -124,11 +135,13 @@ function EditResourceForm({ id }: { id: string }) {
       return;
     }
 
-    updateMutation.mutate({
-      title,
-      abstract: abstractText,
-      tags: selectedTags,
-    });
+    const formData = new FormData();
+    formData.set("title", title);
+    formData.set("abstract", abstractText);
+    selectedTags.forEach((tag) => formData.append("tags", tag));
+    if (file) formData.set("file", file);
+
+    updateMutation.mutate(formData);
   };
 
   if (isLoading) {
@@ -143,53 +156,93 @@ function EditResourceForm({ id }: { id: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="title">Title</Label>
-        <Input
-          id="title"
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          required
+    <>
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <div className="space-y-2">
+          <Label htmlFor="title">Title</Label>
+          <Input
+            id="title"
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="abstract">Abstract</Label>
+          <Textarea
+            id="abstract"
+            value={abstractText}
+            onChange={(event) => setAbstractText(event.target.value)}
+            rows={6}
+            required
+          />
+          <p className="text-xs text-muted-foreground">
+            {abstractWordCount} / {MIN_ABSTRACT_WORDS} words minimum
+          </p>
+        </div>
+
+        <TagPicker
+          selected={selectedTags}
+          onToggle={toggleTag}
+          label={`Tags (select at least ${MIN_TAGS})`}
         />
-      </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="abstract">Abstract</Label>
-        <Textarea
-          id="abstract"
-          value={abstractText}
-          onChange={(event) => setAbstractText(event.target.value)}
-          rows={6}
-          required
+        <FilePicker
+          file={file}
+          onChange={setFile}
+          label="Replace file (optional)"
+          existingFileUrl={data.resource.fileUrl}
         />
-        <p className="text-xs text-muted-foreground">
-          {abstractWordCount} / {MIN_ABSTRACT_WORDS} words minimum
-        </p>
-      </div>
 
-      <TagPicker
-        selected={selectedTags}
-        onToggle={toggleTag}
-        label={`Tags (select at least ${MIN_TAGS})`}
-      />
+        {error && (
+          <p className="flex items-center gap-1.5 text-sm text-destructive">
+            <FiAlertCircle className="size-4 shrink-0" />
+            {error}
+          </p>
+        )}
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+        <div className="flex gap-2">
+          <Button type="submit" disabled={updateMutation.isPending} className="flex-1">
+            {updateMutation.isPending ? "Saving..." : "Save changes"}
+          </Button>
+          <Button
+            type="button"
+            variant="destructive"
+            onClick={() => setConfirmDeleteOpen(true)}
+          >
+            <FiTrash2 className="size-4" />
+            Delete
+          </Button>
+        </div>
+      </form>
 
-      <div className="flex gap-2">
-        <Button type="submit" disabled={updateMutation.isPending} className="flex-1">
-          {updateMutation.isPending ? "Saving..." : "Save changes"}
-        </Button>
-        <Button
-          type="button"
-          variant="destructive"
-          disabled={deleteMutation.isPending}
-          onClick={() => deleteMutation.mutate()}
-        >
-          Delete
-        </Button>
-      </div>
-    </form>
+      <AlertDialog open={confirmDeleteOpen} onOpenChange={setConfirmDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this resource?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes &ldquo;{data.resource.title}&rdquo; and its
+              uploaded file. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              disabled={deleteMutation.isPending}
+              onClick={(event) => {
+                event.preventDefault();
+                deleteMutation.mutate();
+              }}
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
 
@@ -199,12 +252,19 @@ export default function EditResourcePage() {
   return (
     <AdminShell>
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col p-8">
-        <Card>
+        <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle>Edit resource</CardTitle>
-            <CardDescription>
-              Update metadata or remove this resource.
-            </CardDescription>
+            <div className="flex items-center gap-2.5">
+              <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <FiEdit2 className="size-4.5" />
+              </div>
+              <div>
+                <CardTitle>Edit resource</CardTitle>
+                <CardDescription>
+                  Update metadata or remove this resource.
+                </CardDescription>
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <EditResourceForm id={params.id} />
