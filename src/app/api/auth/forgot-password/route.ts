@@ -6,13 +6,19 @@ import { sendPasswordResetEmail } from "@/lib/mail";
 
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000;
 
+const ALLOWED_RESET_PATHS = ["/reset-password", "/admin/reset-password"];
+
 export async function POST(request: Request) {
   const body = await request.json();
-  const { email } = body as { email?: string };
+  const { email, resetPath } = body as { email?: string; resetPath?: string };
 
   if (!email) {
     return NextResponse.json({ error: "Email is required." }, { status: 400 });
   }
+
+  const path = ALLOWED_RESET_PATHS.includes(resetPath ?? "")
+    ? resetPath
+    : "/reset-password";
 
   await connectToDatabase();
 
@@ -26,7 +32,7 @@ export async function POST(request: Request) {
     user.resetPasswordExpires = new Date(Date.now() + RESET_TOKEN_TTL_MS);
     await user.save();
 
-    const resetUrl = `${process.env.NEXTAUTH_URL}/reset-password?token=${rawToken}&email=${encodeURIComponent(
+    const resetUrl = `${process.env.NEXTAUTH_URL}${path}?token=${rawToken}&email=${encodeURIComponent(
       user.email
     )}`;
     await sendPasswordResetEmail(user.email, resetUrl);

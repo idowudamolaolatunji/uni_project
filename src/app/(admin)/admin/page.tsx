@@ -11,7 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { AdminGuard } from "@/components/admin-guard";
+import { AdminShell } from "@/components/admin-shell";
 
 interface Resource {
   _id: string;
@@ -115,8 +115,8 @@ function AdminDashboard() {
 
 export default function AdminPage() {
   return (
-    <AdminGuard>
+    <AdminShell>
       <AdminDashboard />
-    </AdminGuard>
+    </AdminShell>
   );
 }

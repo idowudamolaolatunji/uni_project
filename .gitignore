@@ -20,6 +20,7 @@
 # production
 /build
 CLAUDE.md
+/docs/*
 
 # misc
 .DS_Store

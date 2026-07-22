@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, type FormEvent, type KeyboardEvent } from "react";
+import { useEffect, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { FiX } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,9 +16,23 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { TAG_VOCABULARY } from "@/lib/constants";
-import { RequireAuth } from "@/components/require-auth";
 
 const MIN_TAGS = 3;
+
+interface Profile {
+  interests: string[];
+  courseCodes: string[];
+  tags: string[];
+}
+
+async function fetchProfile() {
+  const response = await fetch("/api/users/me");
+  if (!response.ok) {
+    throw new Error("Failed to load profile.");
+  }
+  const data = (await response.json()) as { user: Profile };
+  return data.user;
+}
 
 async function saveProfile(payload: {
   interests: string[];
@@ -39,12 +53,23 @@ async function saveProfile(payload: {
   return response.json();
 }
 
-function Onboarding() {
+export default function OnboardingPage() {
   const router = useRouter();
+  const { data: profile } = useQuery({ queryKey: ["me"], queryFn: fetchProfile });
+
   const [courseCodes, setCourseCodes] = useState<string[]>([]);
   const [courseCodeInput, setCourseCodeInput] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    if (profile && !initialized) {
+      setCourseCodes(profile.courseCodes);
+      setSelectedTags(profile.tags.length > 0 ? profile.tags : profile.interests);
+      setInitialized(true);
+    }
+  }, [profile, initialized]);
 
   const mutation = useMutation({
     mutationFn: saveProfile,
@@ -105,9 +130,10 @@ function Onboarding() {
     <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col p-8">
       <Card>
         <CardHeader>
-          <CardTitle>Tell us about yourself</CardTitle>
+          <CardTitle>Your profile</CardTitle>
           <CardDescription>
-            This helps us personalize your recommendations from the start.
+            Update your interests, course codes, and tags to improve your
+            recommendations.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -169,19 +195,11 @@ function Onboarding() {
             {error && <p className="text-sm text-destructive">{error}</p>}
 
             <Button type="submit" disabled={mutation.isPending} className="w-full">
-              {mutation.isPending ? "Saving..." : "Continue to dashboard"}
+              {mutation.isPending ? "Saving..." : "Save changes"}
             </Button>
           </form>
         </CardContent>
       </Card>
     </main>
-  );
-}
-
-export default function OnboardingPage() {
-  return (
-    <RequireAuth>
-      <Onboarding />
-    </RequireAuth>
   );
 }

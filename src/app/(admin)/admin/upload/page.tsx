@@ -16,7 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { TAG_VOCABULARY } from "@/lib/constants";
-import { AdminGuard } from "@/components/admin-guard";
+import { AdminShell } from "@/components/admin-shell";
 
 const MIN_TAGS = 3;
 const MIN_ABSTRACT_WORDS = 40;
@@ -90,7 +90,7 @@ export default function AdminUploadPage() {
   };
 
   return (
-    <AdminGuard>
+    <AdminShell>
       <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col p-8">
         <Card>
           <CardHeader>
@@ -169,6 +169,6 @@ export default function AdminUploadPage() {
           </CardContent>
         </Card>
       </main>
-    </AdminGuard>
+    </AdminShell>
   );
 }

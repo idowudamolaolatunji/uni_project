@@ -3,7 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { getSession, signIn } from "next-auth/react";
+import { getSession, signIn, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
@@ -16,7 +16,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-export default function LoginPage() {
+export default function AdminLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -41,16 +41,23 @@ export default function LoginPage() {
     }
 
     const session = await getSession();
-    router.push(session?.user.role === "admin" ? "/admin" : "/dashboard");
+    if (session?.user.role !== "admin") {
+      await signOut({ redirect: false });
+      setError("This login is for administrators only.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    router.push("/admin");
   };
 
   return (
     <main className="flex flex-1 items-center justify-center p-8">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>Log in</CardTitle>
+          <CardTitle>Admin login</CardTitle>
           <CardDescription>
-            Sign in to see your personalized recommendations.
+            Sign in to manage the resource catalog.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -69,7 +76,7 @@ export default function LoginPage() {
               <div className="flex items-center justify-between">
                 <Label htmlFor="password">Password</Label>
                 <Link
-                  href="/forgot-password"
+                  href="/admin/forgot-password"
                   className="text-sm text-muted-foreground underline"
                 >
                   Forgot password?
@@ -86,12 +93,6 @@ export default function LoginPage() {
             <Button type="submit" disabled={isSubmitting} className="w-full">
               {isSubmitting ? "Logging in..." : "Log in"}
             </Button>
-            <p className="text-sm text-muted-foreground">
-              Don&apos;t have an account?{" "}
-              <Link href="/register" className="underline">
-                Register
-              </Link>
-            </p>
           </form>
         </CardContent>
       </Card>

@@ -10,7 +10,7 @@ export function AdminGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (status === "unauthenticated") {
-      router.replace("/login");
+      router.replace("/admin/login");
     } else if (status === "authenticated" && session.user.role !== "admin") {
       router.replace("/dashboard");
     }

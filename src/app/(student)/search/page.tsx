@@ -12,8 +12,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { RequireAuth } from "@/components/require-auth";
-
 interface Resource {
   _id: string;
   title: string;
@@ -40,7 +38,7 @@ async function fetchResources(params: {
   return response.json() as Promise<{ resources: Resource[] }>;
 }
 
-function Search() {
+export default function SearchPage() {
   const [q, setQ] = useState("");
   const [tag, setTag] = useState("");
   const [courseCode, setCourseCode] = useState("");
@@ -117,13 +115,5 @@ function Search() {
         ))}
       </div>
     </main>
-  );
-}
-
-export default function SearchPage() {
-  return (
-    <RequireAuth>
-      <Search />
-    </RequireAuth>
   );
 }

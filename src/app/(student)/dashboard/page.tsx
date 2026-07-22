@@ -15,7 +15,6 @@ import { Slider } from "@/components/ui/slider";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
-import { RequireAuth } from "@/components/require-auth";
 
 interface RecommendedResource {
   resource: {
@@ -77,7 +76,7 @@ function RecommendationSkeleton() {
   );
 }
 
-function Dashboard() {
+export default function DashboardPage() {
   const { data: session } = useSession();
   const [alpha, setAlpha] = useState(0.5);
 
@@ -200,10 +199,3 @@ function Dashboard() {
   );
 }
 
-export default function DashboardPage() {
-  return (
-    <RequireAuth>
-      <Dashboard />
-    </RequireAuth>
-  );
-}
