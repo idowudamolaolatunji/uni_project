@@ -19,15 +19,11 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const tag = searchParams.get("tag");
-  const courseCode = searchParams.get("courseCode");
   const q = searchParams.get("q");
 
   const filter: Record<string, unknown> = {};
   if (tag) {
     filter.tags = tag.trim().toLowerCase();
-  }
-  if (courseCode) {
-    filter.courseCode = courseCode.trim().toLowerCase();
   }
   if (q) {
     filter.$or = [
@@ -52,18 +48,16 @@ export async function POST(request: Request) {
   const formData = await request.formData();
   const title = formData.get("title");
   const abstract = formData.get("abstract");
-  const courseCode = formData.get("courseCode");
   const tags = formData.getAll("tags").map((tag) => String(tag));
   const file = formData.get("file");
 
   if (
     typeof title !== "string" ||
     typeof abstract !== "string" ||
-    typeof courseCode !== "string" ||
     !(file instanceof File)
   ) {
     return NextResponse.json(
-      { error: "title, abstract, courseCode, tags, and file are required." },
+      { error: "title, abstract, tags, and file are required." },
       { status: 400 }
     );
   }
@@ -103,7 +97,6 @@ export async function POST(request: Request) {
   const resource = await ResourceModel.create({
     title,
     abstract,
-    courseCode,
     tags,
     fileUrl: uploadResult.secure_url,
     cloudinaryId: uploadResult.public_id,

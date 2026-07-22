@@ -28,11 +28,6 @@ const userSchema = new Schema(
       default: [],
       set: normalizeTags,
     },
-    courseCodes: {
-      type: [String],
-      default: [],
-      set: normalizeTags,
-    },
     tags: {
       type: [String],
       default: [],

@@ -8,28 +8,22 @@ import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
 interface Resource {
   _id: string;
   title: string;
   abstract: string;
-  courseCode: string;
   tags: string[];
   fileUrl: string;
 }
 
-async function fetchResources(params: {
-  q: string;
-  tag: string;
-  courseCode: string;
-}) {
+async function fetchResources(params: { q: string; tag: string }) {
   const searchParams = new URLSearchParams();
   if (params.q) searchParams.set("q", params.q);
   if (params.tag) searchParams.set("tag", params.tag);
-  if (params.courseCode) searchParams.set("courseCode", params.courseCode);
 
   const response = await fetch(`/api/resources?${searchParams.toString()}`);
   if (!response.ok) {
@@ -41,11 +35,10 @@ async function fetchResources(params: {
 export default function SearchPage() {
   const [q, setQ] = useState("");
   const [tag, setTag] = useState("");
-  const [courseCode, setCourseCode] = useState("");
 
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["resources", q, tag, courseCode],
-    queryFn: () => fetchResources({ q, tag, courseCode }),
+    queryKey: ["resources", q, tag],
+    queryFn: () => fetchResources({ q, tag }),
   });
 
   return (
@@ -53,11 +46,11 @@ export default function SearchPage() {
       <div>
         <h1 className="text-2xl font-semibold">Search resources</h1>
         <p className="text-muted-foreground">
-          Filter the catalog by keyword, tag, or course code.
+          Filter the catalog by keyword or tag.
         </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="q">Keyword</Label>
           <Input id="q" value={q} onChange={(event) => setQ(event.target.value)} />
@@ -65,14 +58,6 @@ export default function SearchPage() {
         <div className="space-y-2">
           <Label htmlFor="tag">Tag</Label>
           <Input id="tag" value={tag} onChange={(event) => setTag(event.target.value)} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="courseCode">Course code</Label>
-          <Input
-            id="courseCode"
-            value={courseCode}
-            onChange={(event) => setCourseCode(event.target.value)}
-          />
         </div>
       </div>
 
@@ -89,7 +74,6 @@ export default function SearchPage() {
           <Card key={resource._id}>
             <CardHeader>
               <CardTitle>{resource.title}</CardTitle>
-              <CardDescription>{resource.courseCode.toUpperCase()}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="line-clamp-3 text-sm text-muted-foreground">

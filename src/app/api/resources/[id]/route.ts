@@ -36,10 +36,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
   const { id } = await params;
   const body = await request.json();
-  const { title, abstract, courseCode, tags } = body as {
+  const { title, abstract, tags } = body as {
     title?: string;
     abstract?: string;
-    courseCode?: string;
     tags?: string[];
   };
 
@@ -52,7 +51,6 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
   if (title !== undefined) resource.title = title;
   if (abstract !== undefined) resource.abstract = abstract;
-  if (courseCode !== undefined) resource.courseCode = courseCode;
   if (tags !== undefined) resource.tags = tags;
 
   if (title !== undefined || abstract !== undefined) {

@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   Card,
   CardContent,
@@ -15,7 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { TAG_VOCABULARY } from "@/lib/constants";
+import { TagPicker } from "@/components/tag-picker";
 import { AdminShell } from "@/components/admin-shell";
 
 const MIN_TAGS = 3;
@@ -39,7 +38,6 @@ export default function AdminUploadPage() {
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [abstractText, setAbstractText] = useState("");
-  const [courseCode, setCourseCode] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -82,7 +80,6 @@ export default function AdminUploadPage() {
     const formData = new FormData();
     formData.set("title", title);
     formData.set("abstract", abstractText);
-    formData.set("courseCode", courseCode);
     selectedTags.forEach((tag) => formData.append("tags", tag));
     formData.set("file", file);
 
@@ -125,30 +122,11 @@ export default function AdminUploadPage() {
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="courseCode">Course code</Label>
-                <Input
-                  id="courseCode"
-                  value={courseCode}
-                  onChange={(event) => setCourseCode(event.target.value)}
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Tags (select at least {MIN_TAGS})</Label>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                  {TAG_VOCABULARY.map((tag) => (
-                    <label key={tag} className="flex items-center gap-2 text-sm">
-                      <Checkbox
-                        checked={selectedTags.includes(tag)}
-                        onCheckedChange={() => toggleTag(tag)}
-                      />
-                      {tag}
-                    </label>
-                  ))}
-                </div>
-              </div>
+              <TagPicker
+                selected={selectedTags}
+                onToggle={toggleTag}
+                label={`Tags (select at least ${MIN_TAGS})`}
+              />
 
               <div className="space-y-2">
                 <Label htmlFor="file">File</Label>

@@ -7,7 +7,6 @@ import { useSession } from "next-auth/react";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -21,7 +20,6 @@ interface RecommendedResource {
     id: string;
     title: string;
     abstract: string;
-    courseCode: string;
     tags: string[];
     fileUrl: string;
   };
@@ -32,7 +30,6 @@ interface RecommendedResource {
 
 interface Profile {
   interests: string[];
-  courseCodes: string[];
   tags: string[];
 }
 
@@ -93,8 +90,7 @@ export default function DashboardPage() {
   const needsOnboarding =
     profile !== undefined &&
     profile.tags.length === 0 &&
-    profile.interests.length === 0 &&
-    profile.courseCodes.length === 0;
+    profile.interests.length === 0;
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 p-8">
@@ -112,8 +108,8 @@ export default function DashboardPage() {
         <Card className="border-primary/50 bg-primary/5">
           <CardContent className="flex items-center justify-between gap-4 pt-6">
             <p className="text-sm">
-              You haven&apos;t set your interests, course codes, or tags yet
-              &mdash; recommendations will be more relevant once you do.
+              You haven&apos;t set your interests or tags yet &mdash;
+              recommendations will be more relevant once you do.
             </p>
             <Button asChild size="sm">
               <Link href="/onboarding">Complete onboarding</Link>
@@ -165,7 +161,6 @@ export default function DashboardPage() {
           <Card key={resource.id}>
             <CardHeader>
               <CardTitle>{resource.title}</CardTitle>
-              <CardDescription>{resource.courseCode.toUpperCase()}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="line-clamp-3 text-sm text-muted-foreground">

@@ -7,7 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -17,7 +16,6 @@ interface Resource {
   _id: string;
   title: string;
   abstract: string;
-  courseCode: string;
   tags: string[];
 }
 
@@ -79,7 +77,6 @@ function AdminDashboard() {
           <Card key={resource._id}>
             <CardHeader>
               <CardTitle>{resource.title}</CardTitle>
-              <CardDescription>{resource.courseCode.toUpperCase()}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="line-clamp-2 text-sm text-muted-foreground">

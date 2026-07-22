@@ -13,7 +13,7 @@ export async function GET() {
 
   const user = await UserModel.findById(
     session.user.id,
-    "email role interests courseCodes tags"
+    "email role interests tags"
   ).lean();
 
   if (!user) {
@@ -30,9 +30,8 @@ export async function PATCH(request: Request) {
   }
 
   const body = await request.json();
-  const { interests, courseCodes, tags } = body as {
+  const { interests, tags } = body as {
     interests?: string[];
-    courseCodes?: string[];
     tags?: string[];
   };
 
@@ -44,7 +43,6 @@ export async function PATCH(request: Request) {
   }
 
   if (interests !== undefined) user.interests = interests;
-  if (courseCodes !== undefined) user.courseCodes = courseCodes;
   if (tags !== undefined) user.tags = tags;
 
   await user.save();
@@ -52,7 +50,6 @@ export async function PATCH(request: Request) {
   return NextResponse.json({
     user: {
       interests: user.interests,
-      courseCodes: user.courseCodes,
       tags: user.tags,
     },
   });

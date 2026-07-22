@@ -45,18 +45,13 @@ export async function GET(request: Request) {
   );
   const idf = computeInverseDocumentFrequencies(documents);
 
-  const userTagSet = [
-    ...(user.interests ?? []),
-    ...(user.tags ?? []),
-    ...(user.courseCodes ?? []),
-  ];
+  const userTagSet = [...(user.interests ?? []), ...(user.tags ?? [])];
   const userTokens = tokenize(userTagSet.join(" "));
   const userVector = computeTfidfVector(userTokens, idf);
 
   const recommendations = resources
     .map((resource) => {
-      const resourceTagSet = [...resource.tags, resource.courseCode];
-      const jaccard = jaccardSimilarity(userTagSet, resourceTagSet);
+      const jaccard = jaccardSimilarity(userTagSet, resource.tags);
       const cosine = cosineSimilarity(
         userVector,
         resource.tfidfVector ?? new Map()
@@ -68,7 +63,6 @@ export async function GET(request: Request) {
           id: resource._id.toString(),
           title: resource.title,
           abstract: resource.abstract,
-          courseCode: resource.courseCode,
           tags: resource.tags,
           fileUrl: resource.fileUrl,
         },

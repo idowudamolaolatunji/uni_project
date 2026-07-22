@@ -27,12 +27,6 @@ const resourceSchema = new Schema(
         message: `Abstract must be at least ${MIN_ABSTRACT_WORDS} words.`,
       },
     },
-    courseCode: {
-      type: String,
-      required: true,
-      trim: true,
-      lowercase: true,
-    },
     tags: {
       type: [String],
       default: [],
