@@ -38,6 +38,14 @@ const userSchema = new Schema(
       default: [],
       set: normalizeTags,
     },
+    resetPasswordTokenHash: {
+      type: String,
+      select: false,
+    },
+    resetPasswordExpires: {
+      type: Date,
+      select: false,
+    },
   },
   { timestamps: { createdAt: true, updatedAt: false } }
 );
