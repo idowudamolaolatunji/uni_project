@@ -21,7 +21,9 @@ const DEFAULT_TAGS = [
   "statistics",
 ];
 
-export async function GET() {
+const DEFAULT_PAGE_SIZE = 100;
+
+export async function GET(request: Request) {
   const session = await auth();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
@@ -41,14 +43,22 @@ export async function GET() {
     }
   }
 
-  const tags = await TagModel.find({}).sort({ name: 1 }).lean();
-  return NextResponse.json({ tags: tags.map((tag) => tag.name) });
+  const { searchParams } = new URL(request.url);
+  const requestedLimit = Number(searchParams.get("limit"));
+  const limit =
+    Number.isFinite(requestedLimit) && requestedLimit > 0
+      ? Math.min(requestedLimit, MAX_TAGS)
+      : DEFAULT_PAGE_SIZE;
+
+  const total = await TagModel.countDocuments();
+  const tags = await TagModel.find({}).sort({ name: 1 }).limit(limit).lean();
+  return NextResponse.json({ tags: tags.map((tag) => tag.name), total });
 }
 
 export async function POST(request: Request) {
   const session = await auth();
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+  if (!session || session.user.role !== "admin") {
+    return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
   const body = await request.json();

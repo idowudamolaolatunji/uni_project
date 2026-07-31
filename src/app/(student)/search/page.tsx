@@ -119,7 +119,11 @@ export default function SearchPage() {
               </p>
               <div className="flex flex-wrap gap-2">
                 {resource.tags.map((t) => (
-                  <Badge key={t} variant="secondary">
+                  <Badge
+                    key={t}
+                    variant="secondary"
+                    className="bg-primary/10 text-primary"
+                  >
                     {t}
                   </Badge>
                 ))}

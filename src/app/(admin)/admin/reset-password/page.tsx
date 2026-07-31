@@ -3,16 +3,11 @@
 import { Suspense, useState, type FormEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { FiLock } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { AuthShell } from "@/components/auth-shell";
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -109,22 +104,14 @@ function ResetPasswordForm() {
 
 export default function AdminResetPasswordPage() {
   return (
-    <main className="flex flex-1 items-center justify-center p-8">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>Reset your password</CardTitle>
-          <CardDescription>
-            Choose a new password for your admin account.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Suspense
-            fallback={<p className="text-muted-foreground">Loading...</p>}
-          >
-            <ResetPasswordForm />
-          </Suspense>
-        </CardContent>
-      </Card>
-    </main>
+    <AuthShell
+      icon={FiLock}
+      title="Reset your password"
+      description="Choose a new password for your admin account."
+    >
+      <Suspense fallback={<p className="text-muted-foreground">Loading...</p>}>
+        <ResetPasswordForm />
+      </Suspense>
+    </AuthShell>
   );
 }

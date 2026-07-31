@@ -142,7 +142,11 @@ function AdminDashboard() {
               </p>
               <div className="flex flex-wrap gap-2">
                 {resource.tags.map((tag) => (
-                  <Badge key={tag} variant="secondary">
+                  <Badge
+                    key={tag}
+                    variant="secondary"
+                    className="bg-primary/10 text-primary"
+                  >
                     {tag}
                   </Badge>
                 ))}

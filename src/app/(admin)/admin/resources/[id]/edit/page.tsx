@@ -186,6 +186,7 @@ function EditResourceForm({ id }: { id: string }) {
           selected={selectedTags}
           onToggle={toggleTag}
           label={`Tags (select at least ${MIN_TAGS})`}
+          canManage
         />
 
         <FilePicker

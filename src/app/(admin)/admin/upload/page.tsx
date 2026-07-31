@@ -135,6 +135,7 @@ export default function AdminUploadPage() {
                 selected={selectedTags}
                 onToggle={toggleTag}
                 label={`Tags (select at least ${MIN_TAGS})`}
+                canManage
               />
 
               <FilePicker file={file} onChange={setFile} label="File" />
