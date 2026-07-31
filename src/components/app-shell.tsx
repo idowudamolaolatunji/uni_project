@@ -73,7 +73,7 @@ export function AppShell({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="flex h-dvh flex-1 overflow-hidden">
+    <div className="fixed inset-0 flex overflow-hidden">
       <aside className="hidden w-56 shrink-0 flex-col overflow-y-auto border-r bg-sidebar p-4 sm:flex">
         <Link
           href={homeHref}
@@ -85,7 +85,7 @@ export function AppShell({
         <NavLinks items={navItems} pathname={pathname} />
       </aside>
 
-      <div className="flex flex-1 flex-col overflow-hidden">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <header className="flex h-14 shrink-0 items-center gap-3 border-b bg-background/80 px-4 backdrop-blur">
           <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
             <SheetTrigger asChild>
@@ -127,7 +127,7 @@ export function AppShell({
           <div className="flex-1" />
           <ProfileMenu />
         </header>
-        <div className="flex flex-1 flex-col overflow-y-auto">{children}</div>
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</div>
       </div>
     </div>
   );
