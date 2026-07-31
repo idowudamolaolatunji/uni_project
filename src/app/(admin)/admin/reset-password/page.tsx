@@ -78,6 +78,7 @@ function ResetPasswordForm() {
         <Label htmlFor="password">New password</Label>
         <PasswordInput
           id="password"
+          placeholder="At least 8 characters"
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           required
@@ -88,6 +89,7 @@ function ResetPasswordForm() {
         <Label htmlFor="confirmPassword">Confirm new password</Label>
         <PasswordInput
           id="confirmPassword"
+          placeholder="Re-enter your new password"
           value={confirmPassword}
           onChange={(event) => setConfirmPassword(event.target.value)}
           required

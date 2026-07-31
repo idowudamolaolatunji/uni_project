@@ -52,6 +52,7 @@ export default function RegisterPage() {
           <Input
             id="email"
             type="email"
+            placeholder="you@example.com"
             value={email}
             onChange={(event) => setEmail(event.target.value)}
             required
@@ -61,6 +62,7 @@ export default function RegisterPage() {
           <Label htmlFor="password">Password</Label>
           <PasswordInput
             id="password"
+            placeholder="At least 8 characters"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             required

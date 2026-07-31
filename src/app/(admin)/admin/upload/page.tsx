@@ -111,6 +111,7 @@ export default function AdminUploadPage() {
                 <Label htmlFor="title">Title</Label>
                 <Input
                   id="title"
+                  placeholder="e.g. Introduction to Data Structures"
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   required
@@ -121,6 +122,7 @@ export default function AdminUploadPage() {
                 <Label htmlFor="abstract">Abstract</Label>
                 <Textarea
                   id="abstract"
+                  placeholder="Summarize what this resource covers, its key topics, and who it's useful for (minimum 40 words)..."
                   value={abstractText}
                   onChange={(event) => setAbstractText(event.target.value)}
                   rows={6}

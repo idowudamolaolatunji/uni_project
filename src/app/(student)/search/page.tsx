@@ -78,11 +78,21 @@ export default function SearchPage() {
       <div className="grid gap-4 rounded-lg border bg-card p-4 shadow-sm sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="q">Keyword</Label>
-          <Input id="q" value={q} onChange={(event) => setQ(event.target.value)} />
+          <Input
+            id="q"
+            placeholder="Search by title or keyword..."
+            value={q}
+            onChange={(event) => setQ(event.target.value)}
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="tag">Tag</Label>
-          <Input id="tag" value={tag} onChange={(event) => setTag(event.target.value)} />
+          <Input
+            id="tag"
+            placeholder="e.g. machine learning"
+            value={tag}
+            onChange={(event) => setTag(event.target.value)}
+          />
         </div>
       </div>
 
