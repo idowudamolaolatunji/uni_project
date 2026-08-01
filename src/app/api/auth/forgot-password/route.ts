@@ -35,7 +35,12 @@ export async function POST(request: Request) {
     const resetUrl = `${process.env.NEXTAUTH_URL}${path}?token=${rawToken}&email=${encodeURIComponent(
       user.email
     )}`;
-    await sendPasswordResetEmail(user.email, resetUrl);
+
+    try {
+      await sendPasswordResetEmail(user.email, resetUrl);
+    } catch (error) {
+      console.error("Failed to send password reset email:", error);
+    }
   }
 
   // Same response whether or not the user exists, so this endpoint can't be used to enumerate accounts.
