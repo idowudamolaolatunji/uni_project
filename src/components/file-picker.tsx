@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
-const ACCEPTED_EXTENSIONS = ".pdf,.doc,.docx,.ppt,.pptx,.epub,.txt";
+export const ACCEPTED_RESOURCE_EXTENSIONS = ".pdf,.doc,.docx,.ppt,.pptx,.epub,.txt";
 
 function formatSize(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
@@ -17,11 +17,15 @@ export function FilePicker({
   onChange,
   label,
   existingFileUrl,
+  accept = ACCEPTED_RESOURCE_EXTENSIONS,
+  hint = "PDF, DOC, DOCX, PPT, PPTX, EPUB, or TXT",
 }: {
   file: File | null;
   onChange: (file: File | null) => void;
   label: string;
   existingFileUrl?: string;
+  accept?: string;
+  hint?: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -87,9 +91,7 @@ export function FilePicker({
               <span className="font-medium text-primary">Click to upload</span> or drag
               and drop
             </p>
-            <p className="text-xs text-muted-foreground">
-              PDF, DOC, DOCX, PPT, PPTX, EPUB, or TXT
-            </p>
+            <p className="text-xs text-muted-foreground">{hint}</p>
             {existingFileUrl && (
               <a
                 href={existingFileUrl}
@@ -107,7 +109,7 @@ export function FilePicker({
       <input
         ref={inputRef}
         type="file"
-        accept={ACCEPTED_EXTENSIONS}
+        accept={accept}
         className="hidden"
         onChange={(event) => onChange(event.target.files?.[0] ?? null)}
       />

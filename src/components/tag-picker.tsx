@@ -90,7 +90,9 @@ export function TagPicker({
     mutationFn: createTag,
     onSuccess: (tag) => {
       queryClient.invalidateQueries({ queryKey: ["tags"] });
-      onToggle(tag);
+      if (!selected.includes(tag)) {
+        onToggle(tag);
+      }
       setNewTag("");
       setIsAdding(false);
       setError(null);
