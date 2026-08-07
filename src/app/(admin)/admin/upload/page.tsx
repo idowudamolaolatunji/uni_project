@@ -187,6 +187,8 @@ function BulkRowItem({
   onRemove,
   submitState,
   vocabularySet,
+  onAddTagToVocabulary,
+  isAddingTag,
 }: {
   row: ValidatedBulkRow;
   expanded: boolean;
@@ -196,6 +198,8 @@ function BulkRowItem({
   onRemove: () => void;
   submitState?: SubmitState;
   vocabularySet: Set<string>;
+  onAddTagToVocabulary: (tag: string) => void;
+  isAddingTag: boolean;
 }) {
   const abstractWordCount = countWords(row.abstract);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -238,9 +242,18 @@ function BulkRowItem({
             </Badge>
           )}
           {!submitState && (
-            <Badge variant="outline" className="text-muted-foreground">
-              Draft
-            </Badge>
+            <>
+              {row.status === "pass" ? (
+                <Badge className="gap-1">
+                  <FiCheckCircle className="size-3" />
+                  Pass
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="text-muted-foreground">
+                  Not filled
+                </Badge>
+              )}
+            </>
           )}
         </TableCell>
         <TableCell>
@@ -292,12 +305,32 @@ function BulkRowItem({
           )}
         </TableCell>
         <TableCell className="whitespace-normal">
-          <div className="max-w-72 text-xs text-muted-foreground">
-            {submitState?.status === "error"
-              ? submitState.error
-              : row.reasons.length > 0
-                ? row.reasons.join(" ")
-                : "Looks good."}
+          <div className="max-w-72 space-y-1.5 text-xs text-muted-foreground">
+            <div>
+              {submitState?.status === "error"
+                ? submitState.error
+                : row.reasons.length > 0
+                  ? row.reasons.join(" ")
+                  : "Looks good."}
+            </div>
+            {!submitState && orphanTags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {orphanTags.map((tag) => (
+                  <Button
+                    key={tag}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-6 px-2 text-xs"
+                    disabled={isAddingTag}
+                    onClick={() => onAddTagToVocabulary(tag)}
+                  >
+                    <FiPlus className="size-3" />
+                    Add &ldquo;{tag}&rdquo;
+                  </Button>
+                ))}
+              </div>
+            )}
           </div>
         </TableCell>
         <TableCell>
@@ -505,6 +538,27 @@ export default function AdminUploadPage() {
   });
   const vocabularySet = useMemo(() => new Set(vocabularyTags ?? []), [vocabularyTags]);
   const vocabularyReady = vocabularyTags !== undefined;
+
+  const addTagMutation = useMutation({
+    mutationFn: async (tagName: string) => {
+      const response = await fetch("/api/tags", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: tagName }),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error ?? "Failed to add tag.");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tags"] });
+    },
+    onError: (mutationError: Error) => {
+      setBulkError(mutationError.message);
+    },
+  });
 
   const handleCsvChange = (nextFile: File | null) => {
     setCsvError(null);
@@ -744,6 +798,8 @@ export default function AdminUploadPage() {
                       onRemove={() => removeRow(row.key)}
                       submitState={submitResults[row.key]}
                       vocabularySet={vocabularySet}
+                      onAddTagToVocabulary={(tag) => addTagMutation.mutate(tag)}
+                      isAddingTag={addTagMutation.isPending}
                     />
                   ))}
                 </TableBody>
