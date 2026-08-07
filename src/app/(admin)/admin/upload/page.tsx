@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -11,6 +11,10 @@ import {
   FiChevronDown,
   FiChevronUp,
   FiFileText,
+  FiDownload,
+  FiPlus,
+  FiEdit2,
+  FiTrash2,
 } from "react-icons/fi";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,8 +38,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { TagPicker } from "@/components/tag-picker";
-import { FilePicker } from "@/components/file-picker";
-import { MultiFilePicker } from "@/components/multi-file-picker";
+import { FilePicker, ACCEPTED_RESOURCE_EXTENSIONS } from "@/components/file-picker";
 import { AdminShell } from "@/components/admin-shell";
 import { parseCsvRecords } from "@/lib/csv";
 
@@ -87,14 +90,31 @@ async function recomputeVectors() {
   return response.json();
 }
 
+const CSV_TEMPLATE_HEADER = "title,abstract,tags";
+const CSV_TEMPLATE_EXAMPLE_ABSTRACT =
+  "A comprehensive introduction to arrays, linked lists, stacks, queues, trees, and graphs, covering time and space complexity trade-offs for common operations across a wide range of everyday academic use cases, worked examples, and practical exercises designed to build a solid foundation for further study in this area.";
+
+function downloadCsvTemplate() {
+  const exampleRow = `"Introduction to Data Structures","${CSV_TEMPLATE_EXAMPLE_ABSTRACT}","data structures; algorithms; software engineering"`;
+  const csvContent = `${CSV_TEMPLATE_HEADER}\n${exampleRow}\n`;
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "bulk-upload-template.csv";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
 interface BulkRow {
   key: string;
   title: string;
   abstract: string;
   tags: string[];
-  filename: string;
   file: File | null;
-  fileManuallySet: boolean;
 }
 
 interface ValidatedBulkRow extends BulkRow {
@@ -106,7 +126,8 @@ type SubmitState = { status: "uploading" | "done" | "error"; error?: string };
 
 function validateBulkRow(
   row: BulkRow,
-  vocabulary: Set<string>
+  vocabulary: Set<string>,
+  vocabularyReady: boolean
 ): { status: "pass" | "fail"; reasons: string[] } {
   const reasons: string[] = [];
 
@@ -131,39 +152,30 @@ function validateBulkRow(
     );
   }
 
-  const unknownTags = row.tags.filter((tag) => !vocabulary.has(tag));
-  if (unknownTags.length > 0) {
-    reasons.push(
-      `Unknown tag${unknownTags.length === 1 ? "" : "s"} not yet in the shared vocabulary: ${unknownTags.join(", ")}.`
-    );
+  if (vocabularyReady) {
+    const unknownTags = row.tags.filter((tag) => !vocabulary.has(tag));
+    if (unknownTags.length > 0) {
+      reasons.push(
+        `Unknown tag${unknownTags.length === 1 ? "" : "s"} not yet in the shared vocabulary: ${unknownTags.join(", ")}.`
+      );
+    }
   }
 
-  if (!row.filename.trim()) {
-    reasons.push("Missing filename.");
-  } else if (!row.file) {
-    reasons.push(`No selected file matches "${row.filename}".`);
+  if (!row.file) {
+    reasons.push("No file attached yet.");
   }
 
   return { status: reasons.length === 0 ? "pass" : "fail", reasons };
 }
 
-function buildRowsFromRecords(
-  records: Record<string, string>[],
-  batchFiles: File[]
-): BulkRow[] {
-  const filesByName = new Map(batchFiles.map((file) => [file.name, file]));
-  return records.map((record, index) => {
-    const filename = record.filename ?? "";
-    return {
-      key: `row-${index}`,
-      title: record.title ?? "",
-      abstract: record.abstract ?? "",
-      tags: normalizeTagsCell(record.tags ?? ""),
-      filename,
-      file: filesByName.get(filename) ?? null,
-      fileManuallySet: false,
-    };
-  });
+function buildRowsFromRecords(records: Record<string, string>[]): BulkRow[] {
+  return records.map((record) => ({
+    key: crypto.randomUUID(),
+    title: record.title ?? "",
+    abstract: record.abstract ?? "",
+    tags: normalizeTagsCell(record.tags ?? ""),
+    file: null,
+  }));
 }
 
 function BulkRowItem({
@@ -172,28 +184,34 @@ function BulkRowItem({
   onToggleExpand,
   onUpdate,
   onToggleTag,
+  onRemove,
   submitState,
+  vocabularySet,
 }: {
   row: ValidatedBulkRow;
   expanded: boolean;
   onToggleExpand: () => void;
   onUpdate: (patch: Partial<BulkRow>) => void;
   onToggleTag: (tag: string) => void;
+  onRemove: () => void;
   submitState?: SubmitState;
+  vocabularySet: Set<string>;
 }) {
   const abstractWordCount = countWords(row.abstract);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const orphanTags = row.tags.filter((tag) => !vocabularySet.has(tag));
 
   return (
     <>
       <TableRow>
         <TableCell>
-          {row.status === "fail" && !submitState && (
+          {!submitState && (
             <Button
               type="button"
               variant="ghost"
               size="icon-sm"
               onClick={onToggleExpand}
-              aria-label={expanded ? "Collapse" : "Fix row"}
+              aria-label={expanded ? "Collapse" : "Edit row"}
             >
               {expanded ? (
                 <FiChevronUp className="size-4" />
@@ -219,16 +237,9 @@ function BulkRowItem({
               Failed
             </Badge>
           )}
-          {!submitState && row.status === "pass" && (
-            <Badge className="gap-1 bg-primary/10 text-primary">
-              <FiCheckCircle className="size-3" />
-              Pass
-            </Badge>
-          )}
-          {!submitState && row.status === "fail" && (
-            <Badge variant="destructive" className="gap-1">
-              <FiXCircle className="size-3" />
-              Fail
+          {!submitState && (
+            <Badge variant="outline" className="text-muted-foreground">
+              Draft
             </Badge>
           )}
         </TableCell>
@@ -252,9 +263,33 @@ function BulkRowItem({
           </div>
         </TableCell>
         <TableCell>
-          <div className="max-w-40 truncate text-xs">
-            {row.file ? row.file.name : row.filename || "—"}
-          </div>
+          {row.file ? (
+            <div className="max-w-40 truncate text-xs">{row.file.name}</div>
+          ) : (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={!!submitState}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <FiUploadCloud className="size-3.5" />
+                Attach file
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={ACCEPTED_RESOURCE_EXTENSIONS}
+                className="hidden"
+                onChange={(event) => {
+                  const selected = event.target.files?.[0] ?? null;
+                  if (selected) onUpdate({ file: selected });
+                  event.target.value = "";
+                }}
+              />
+            </>
+          )}
         </TableCell>
         <TableCell className="whitespace-normal">
           <div className="max-w-72 text-xs text-muted-foreground">
@@ -265,11 +300,24 @@ function BulkRowItem({
                 : "Looks good."}
           </div>
         </TableCell>
+        <TableCell>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            disabled={submitState?.status === "uploading"}
+            onClick={onRemove}
+            aria-label="Remove row"
+            className="text-destructive/70 hover:bg-destructive/10 hover:text-destructive"
+          >
+            <FiTrash2 className="size-4" />
+          </Button>
+        </TableCell>
       </TableRow>
 
-      {expanded && row.status === "fail" && !submitState && (
+      {expanded && !submitState && (
         <TableRow>
-          <TableCell colSpan={6} className="whitespace-normal bg-muted/30">
+          <TableCell colSpan={7} className="whitespace-normal bg-muted/30">
             <div className="space-y-4 p-2">
               <div className="space-y-2">
                 <Label>Title</Label>
@@ -289,6 +337,31 @@ function BulkRowItem({
                   {abstractWordCount} / {MIN_ABSTRACT_WORDS} words minimum
                 </p>
               </div>
+              {orphanTags.length > 0 && (
+                <div className="space-y-1.5 rounded-md border border-dashed border-destructive/40 bg-destructive/5 p-3">
+                  <p className="text-xs text-muted-foreground">
+                    Not yet in the shared vocabulary — remove{" "}
+                    {orphanTags.length === 1 ? "it" : "them"}, or use &ldquo;Add
+                    tag&rdquo; below with the exact same name to register{" "}
+                    {orphanTags.length === 1 ? "it" : "them"}:
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {orphanTags.map((tag) => (
+                      <Badge key={tag} variant="destructive" className="gap-1">
+                        {tag}
+                        <button
+                          type="button"
+                          aria-label={`Remove tag ${tag}`}
+                          onClick={() => onToggleTag(tag)}
+                          className="rounded-sm hover:opacity-80"
+                        >
+                          <FiXCircle className="size-3" />
+                        </button>
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
               <TagPicker
                 selected={row.tags}
                 onToggle={onToggleTag}
@@ -297,7 +370,7 @@ function BulkRowItem({
               />
               <FilePicker
                 file={row.file}
-                onChange={(nextFile) => onUpdate({ file: nextFile, fileManuallySet: true })}
+                onChange={(nextFile) => onUpdate({ file: nextFile })}
                 label="File"
               />
             </div>
@@ -416,34 +489,28 @@ export default function AdminUploadPage() {
   // ---- bulk upload state ----
   const [csvFile, setCsvFile] = useState<File | null>(null);
   const [csvError, setCsvError] = useState<string | null>(null);
-  const [batchFiles, setBatchFiles] = useState<File[]>([]);
   const [rows, setRows] = useState<BulkRow[]>([]);
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
   const [submitResults, setSubmitResults] = useState<Record<string, SubmitState>>({});
   const [bulkError, setBulkError] = useState<string | null>(null);
   const [bulkSummary, setBulkSummary] = useState<string | null>(null);
-  const batchFilesRef = useRef<File[]>([]);
 
-  useEffect(() => {
-    batchFilesRef.current = batchFiles;
-  }, [batchFiles]);
-
-  const { data: vocabularyTags = [] } = useQuery({
+  const {
+    data: vocabularyTags,
+    isLoading: isVocabularyLoading,
+    isError: isVocabularyError,
+  } = useQuery({
     queryKey: ["tags", MAX_VOCABULARY_FETCH],
     queryFn: fetchAllTags,
   });
-  const vocabularySet = useMemo(() => new Set(vocabularyTags), [vocabularyTags]);
+  const vocabularySet = useMemo(() => new Set(vocabularyTags ?? []), [vocabularyTags]);
+  const vocabularyReady = vocabularyTags !== undefined;
 
   const handleCsvChange = (nextFile: File | null) => {
-    setCsvFile(nextFile);
     setCsvError(null);
-    setBulkSummary(null);
-    setBulkError(null);
-    setSubmitResults({});
-    setExpandedRows(new Set());
 
     if (!nextFile) {
-      setRows([]);
+      setCsvFile(null);
       return;
     }
 
@@ -453,30 +520,38 @@ export default function AdminUploadPage() {
         const records = parseCsvRecords(text);
         if (records.length === 0) {
           setCsvError("No rows found in this CSV.");
-          setRows([]);
+          setCsvFile(null);
           return;
         }
-        setRows(buildRowsFromRecords(records, batchFilesRef.current));
+        setRows((current) => [...current, ...buildRowsFromRecords(records)]);
+        setBulkSummary(null);
+        setBulkError(null);
+        setCsvFile(null);
       })
       .catch(() => {
         setCsvError("Couldn't read that CSV file.");
-        setRows([]);
+        setCsvFile(null);
       });
   };
 
-  useEffect(() => {
-    setRows((current) =>
-      current.map((row) => {
-        if (row.fileManuallySet) return row;
-        const match = batchFiles.find((candidate) => candidate.name === row.filename) ?? null;
-        return { ...row, file: match };
-      })
-    );
-  }, [batchFiles]);
+  const addManualRow = () => {
+    const key = crypto.randomUUID();
+    setRows((current) => [
+      ...current,
+      { key, title: "", abstract: "", tags: [], file: null },
+    ]);
+    setExpandedRows((current) => new Set(current).add(key));
+    setBulkSummary(null);
+    setBulkError(null);
+  };
 
   const validatedRows: ValidatedBulkRow[] = useMemo(
-    () => rows.map((row) => ({ ...row, ...validateBulkRow(row, vocabularySet) })),
-    [rows, vocabularySet]
+    () =>
+      rows.map((row) => ({
+        ...row,
+        ...validateBulkRow(row, vocabularySet, vocabularyReady),
+      })),
+    [rows, vocabularySet, vocabularyReady]
   );
 
   const passCount = validatedRows.filter((row) => row.status === "pass").length;
@@ -503,6 +578,15 @@ export default function AdminUploadPage() {
       } else {
         next.add(key);
       }
+      return next;
+    });
+  };
+
+  const removeRow = (key: string) => {
+    setRows((current) => current.filter((row) => row.key !== key));
+    setExpandedRows((current) => {
+      const next = new Set(current);
+      next.delete(key);
       return next;
     });
   };
@@ -564,21 +648,61 @@ export default function AdminUploadPage() {
           <div>
             <CardTitle>Bulk upload resources</CardTitle>
             <CardDescription>
-              Upload a CSV describing multiple resources, plus the files it references.
+              Import rows from a CSV, add rows manually, or both — then attach each
+              resource&apos;s file directly in the table below.
             </CardDescription>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="space-y-5">
+      <CardContent className="min-w-0 space-y-5">
+        {isVocabularyError && (
+          <p className="flex items-center gap-1.5 text-sm text-destructive">
+            <FiAlertCircle className="size-4 shrink-0" />
+            Couldn&apos;t load the shared tag vocabulary, so tag checks are paused.
+            Refresh the page and try again.
+          </p>
+        )}
+        {isVocabularyLoading && (
+          <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
+            <FiAlertCircle className="size-4 shrink-0" />
+            Loading the shared tag vocabulary before rows can be validated...
+          </p>
+        )}
         <div className="grid gap-4 sm:grid-cols-2">
-          <FilePicker
-            file={csvFile}
-            onChange={handleCsvChange}
-            label="CSV file"
-            accept=".csv"
-            hint="Columns: title, abstract, tags, filename — tags separated by semicolons (;)"
-          />
-          <MultiFilePicker files={batchFiles} onChange={setBatchFiles} label="Resource files" />
+          <div className="flex flex-col gap-3 rounded-lg border bg-card p-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <FiFileText className="size-4 text-primary" />
+                <p className="text-sm font-medium">Option A &mdash; Import from CSV</p>
+              </div>
+              <Button type="button" variant="ghost" size="sm" onClick={downloadCsvTemplate}>
+                <FiDownload className="size-3.5" />
+                Template
+              </Button>
+            </div>
+            <FilePicker
+              file={csvFile}
+              onChange={handleCsvChange}
+              label="CSV file"
+              accept=".csv"
+              hint="Columns: title, abstract, tags — separated by semicolons (;)"
+            />
+          </div>
+
+          <div className="flex flex-col items-center justify-center gap-3 rounded-lg border bg-card p-4 text-center">
+            <div className="flex items-center gap-2">
+              <FiEdit2 className="size-4 text-primary" />
+              <p className="text-sm font-medium">Option B &mdash; Add manually</p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Type in each resource&apos;s title, abstract, tags, and file directly in
+              the table below.
+            </p>
+            <Button type="button" onClick={addManualRow}>
+              <FiPlus className="size-4" />
+              Add a row
+            </Button>
+          </div>
         </div>
 
         {csvError && (
@@ -595,7 +719,7 @@ export default function AdminUploadPage() {
               ready to upload
             </p>
 
-            <div className="rounded-md border">
+            <div className="min-w-0 overflow-x-auto rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -605,6 +729,7 @@ export default function AdminUploadPage() {
                     <TableHead>Tags</TableHead>
                     <TableHead>File</TableHead>
                     <TableHead>Details</TableHead>
+                    <TableHead className="w-8" />
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -616,7 +741,9 @@ export default function AdminUploadPage() {
                       onToggleExpand={() => toggleExpand(row.key)}
                       onUpdate={(patch) => updateRow(row.key, patch)}
                       onToggleTag={(tag) => toggleRowTag(row.key, tag)}
+                      onRemove={() => removeRow(row.key)}
                       submitState={submitResults[row.key]}
+                      vocabularySet={vocabularySet}
                     />
                   ))}
                 </TableBody>
@@ -654,15 +781,15 @@ export default function AdminUploadPage() {
 
   return (
     <AdminShell>
-      <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col p-8">
+      <main className="mx-auto flex w-full max-w-4xl flex-col p-8">
         <Tabs defaultValue="single">
-          <TabsList>
+          <TabsList className="mx-auto max-w-2xl">
             <TabsTrigger value="single">Single Upload</TabsTrigger>
             <TabsTrigger value="bulk">Bulk Upload</TabsTrigger>
           </TabsList>
 
           <TabsContent value="single">
-            <Card className="shadow-sm">
+            <Card className="mx-auto w-full max-w-2xl shadow-sm">
               <CardHeader>
                 <div className="flex items-center gap-2.5">
                   <div className="flex size-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
