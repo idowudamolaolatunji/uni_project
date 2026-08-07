@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import NextTopLoader from "nextjs-toploader";
 import { poppins } from "@/fonts";
 import { Providers } from "@/components/providers";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -20,6 +21,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col font-sans">
         <NextTopLoader color="var(--primary)" showSpinner={false} />
         <Providers>{children}</Providers>
+        <Toaster />
       </body>
     </html>
   );

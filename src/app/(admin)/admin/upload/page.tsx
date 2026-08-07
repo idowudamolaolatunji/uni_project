@@ -3,6 +3,7 @@
 import { useMemo, useRef, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   FiUploadCloud,
   FiAlertCircle,
@@ -428,6 +429,7 @@ export default function AdminUploadPage() {
   const mutation = useMutation({
     mutationFn: createResource,
     onSuccess: () => {
+      toast.success("Resource uploaded successfully.");
       router.push("/admin");
     },
     onError: (mutationError: Error) => {
@@ -682,10 +684,20 @@ export default function AdminUploadPage() {
       const failedCount = passCount - succeededKeys.length;
       setRows((current) => current.filter((row) => !succeededKeys.includes(row.key)));
       queryClient.invalidateQueries({ queryKey: ["admin-resources"] });
-      setBulkSummary(
-        `${succeededKeys.length} resource${succeededKeys.length === 1 ? "" : "s"} uploaded.` +
-          (failedCount > 0 ? ` ${failedCount} failed — see details below.` : "")
-      );
+
+      if (succeededKeys.length > 0) {
+        toast.success(
+          `${succeededKeys.length} resource${succeededKeys.length === 1 ? "" : "s"} uploaded successfully.`
+        );
+      }
+
+      if (failedCount > 0) {
+        setBulkSummary(
+          `${succeededKeys.length} resource${succeededKeys.length === 1 ? "" : "s"} uploaded. ${failedCount} failed — see details below.`
+        );
+      } else if (succeededKeys.length > 0) {
+        router.push("/admin");
+      }
     },
     onError: (mutationError: Error) => {
       setBulkError(mutationError.message);
